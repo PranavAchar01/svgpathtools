@@ -36,10 +36,10 @@ A Big Problem:
 # External dependencies
 from __future__ import division, absolute_import, print_function
 import os
+import sys
 import collections
-import xml.etree.ElementTree as etree
-from xml.etree.ElementTree import Element, SubElement, register_namespace
-from xml.dom.minidom import parseString
+import defusedxml.ElementTree as etree
+from defusedxml.minidom import parseString
 import warnings
 from io import StringIO
 from tempfile import gettempdir
@@ -63,6 +63,20 @@ try:
     from os import PathLike
 except ImportError:
     PathLike = string
+
+# Element class and helpers, obtained without using the unsafe parsers
+Element = type(etree.fromstring('<svg/>'))
+
+
+def SubElement(parent, tag, attrib=None, **extra):
+    attrs = dict(attrib) if attrib else {}
+    attrs.update(extra)
+    elem = parent.makeelement(tag, attrs)
+    parent.append(elem)
+    return elem
+
+
+register_namespace = sys.modules[etree.tostring.__module__].register_namespace
 
 # Let xml.etree.ElementTree know about the SVG namespace
 SVG_NAMESPACE = {'svg': 'http://www.w3.org/2000/svg'}
@@ -272,7 +286,7 @@ class Document:
         self.original_filepath = os.path.abspath(filepath) if from_filepath else None
 
         if filepath is None:
-            self.tree = etree.ElementTree(Element('svg'))
+            self.tree = etree.parse(StringIO('<svg/>'))
         else:
             # parse svg to ElementTree object
             self.tree = etree.parse(filepath)
