@@ -36,10 +36,14 @@ A Big Problem:
 # External dependencies
 from __future__ import division, absolute_import, print_function
 import os
+import sys
 import collections
-import xml.etree.ElementTree as etree
-from xml.etree.ElementTree import Element, SubElement, register_namespace
-from xml.dom.minidom import parseString
+from defusedxml import ElementTree as etree
+from defusedxml.minidom import parseString
+_std_etree = sys.modules[etree.tostring.__module__]
+Element = _std_etree.Element
+SubElement = _std_etree.SubElement
+register_namespace = _std_etree.register_namespace
 import warnings
 from io import StringIO
 from tempfile import gettempdir
@@ -272,7 +276,7 @@ class Document:
         self.original_filepath = os.path.abspath(filepath) if from_filepath else None
 
         if filepath is None:
-            self.tree = etree.ElementTree(Element('svg'))
+            self.tree = _std_etree.ElementTree(Element('svg'))
         else:
             # parse svg to ElementTree object
             self.tree = etree.parse(filepath)
