@@ -36,10 +36,10 @@ A Big Problem:
 # External dependencies
 from __future__ import division, absolute_import, print_function
 import os
+import sys
 import collections
-import xml.etree.ElementTree as etree
-from xml.etree.ElementTree import Element, SubElement, register_namespace
-from xml.dom.minidom import parseString
+from defusedxml import ElementTree as etree
+from defusedxml.minidom import parseString
 import warnings
 from io import StringIO
 from tempfile import gettempdir
@@ -53,6 +53,18 @@ from .svg_to_paths import (path2pathd, ellipse2pathd, line2pathd,
                            polyline2pathd, polygon2pathd, rect2pathd)
 from .misctools import open_in_browser
 from .path import transform, Path, is_path_segment
+
+# Element class and helpers (building elements is safe; only parsing is not)
+Element = type(etree.fromstring('<svg/>'))
+register_namespace = sys.modules['xml.etree.ElementTree'].register_namespace
+
+
+def SubElement(parent, tag, attrib={}, **extra):
+    attrib = dict(attrib)
+    attrib.update(extra)
+    element = parent.makeelement(tag, attrib)
+    parent.append(element)
+    return element
 
 # To maintain forward/backward compatibility
 try:
@@ -272,7 +284,7 @@ class Document:
         self.original_filepath = os.path.abspath(filepath) if from_filepath else None
 
         if filepath is None:
-            self.tree = etree.ElementTree(Element('svg'))
+            self.tree = etree.parse(StringIO('<svg/>'))
         else:
             # parse svg to ElementTree object
             self.tree = etree.parse(filepath)
